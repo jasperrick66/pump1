@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>충수 소요시간 계산기</title>
+<style>
+body {
+font-family: "맑은 고딕", Arial, sans-serif;
+margin: 20px;
+max-width: 600px;
+margin-left: auto;
+margin-right: auto;
+}
+h1 {
+font-size: 28px;
+font-weight: bold;
+text-align: center;
+}
+.subtitle {
+font-size: 16px;
+color: gray;
+text-align: center;
+margin-bottom: 20px;
+}
+label {
+display: block;
+margin-top: 10px;
+font-weight: bold;
+}
+select, input {
+width: 100%;
+padding: 8px;
+margin-top: 4px;
+box-sizing: border-box;
+}
+input.height-input {
+background-color: #e6f3ff;
+}
+input.pump-input {
+background-color: #e6ffe6;
+}
+input.custom-input {
+background-color: #fff7e6;
+}
+button {
+width: 100%;
+margin-top: 10px;
+padding: 10px;
+font-weight: bold;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+}
+.calculate-btn {
+background-color: #ff9933;
+color: white;
+}
+.calculate-btn:hover {
+background-color: #e68a00;
+}
+.reset-btn {
+background-color: #cc0000;
+color: white;
+}
+.reset-btn:hover {
+background-color: #990000;
+}
+.results {
+margin-top: 20px;
+}
+.result-entry {
+font-weight: bold;
+color: red;
+font-size: 16px;
+}
+@media (max-width: 500px) {
+h1 { font-size: 22px; }
+.subtitle { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<h1>충수 소요시간</h1>
+<div class="subtitle">시운전팀 : 김현준</div>
+
+<div class="section">
+<label>수조 선택</label>
+<select id="tankSelect" onchange="setTankDimensions()">
+<option value="">-- 수조를 선택하세요 --</option>
+<option value="드럼스크린조">드럼스크린조 (2.05 × 8.2 × 2.25)</option>
+<option value="혐기조">혐기조 (14.2 × 8.3 × 7.4)</option>
+<option value="무산소조">무산소조 (14.2 × 41.4 × 7.3)</option>
+<option value="혐기조+무산소조">혐기조+무산소조</option>
+<option value="호기조">호기조 (14.2 × 60.1 × 7.1)</option>
+<option value="분리막조">분리막조 (6.85 × 26.5 × 3.5)</option>
+<option value="DO 저감조">DO 저감조 (7.6 × 43.6 × 6.55)</option>
+<option value="재이용수조">재이용수조 (13.6 × 3.0 × 9.6)</option>
+<option value="방류수조">방류수조 (3.1 × 3.0 × 9.6)</option>
+<option value="Custom">Custom (직접입력)</option>
+</select>
+
+<label>W (m)</label>
+<input type="number" id="width" step="0.01" readonly>
+
+<label>L (m)</label>
+<input type="number" id="length" step="0.01" readonly>
+
+<label>He (수위, m)</label>
+<input type="number" id="height" class="height-input" step="0.01">
+
+<label>펌프 유량 (㎥/min)</label>
+<input type="number" id="pump" class="pump-input" step="0.01" value="6">
+</div>
+
+<button class="calculate-btn" onclick="calculateTime()">계산하기</button>
+<button class="reset-btn" onclick="resetResults()">초기화</button>
+
+<div class="results" id="results"></div>
+
+<script>
+const tankData = {
+"드럼스크린조": { W: 2.05, L: 8.2, H: 2.25 },
+"혐기조": { W: 14.2, L: 8.3, H: 7.4 },
+"무산소조": { W: 14.2, L: 41.4, H: 7.3 },
+"혐기조+무산소조": { W: 14.2, L: 8.3 + 41.4, H: (7.4 + 7.3) / 2 },
+"호기조": { W: 14.2, L: 60.1, H: 7.1 },
+"분리막조": { W: 6.85, L: 26.5, H: 3.5 },
+"DO 저감조": { W: 7.6, L: 43.6, H: 6.55 },
+"재이용수조": { W: 13.6, L: 3.0, H: 9.6 },
+"방류수조": { W: 3.1, L: 3.0, H: 9.6 }
+};
+
+let results = [];
+
+function setTankDimensions() {
+const tank = document.getElementById("tankSelect").value;
+if (tank && tankData[tank]) {
+document.getElementById("width").value = tankData[tank].W;
+document.getElementById("length").value = tankData[tank].L;
+document.getElementById("height").placeholder = tankData[tank].H;
+document.getElementById("width").readOnly = true;
+document.getElementById("length").readOnly = true;
+} else if (tank === "Custom") {
+document.getElementById("width").value = "";
+document.getElementById("length").value = "";
+document.getElementById("height").placeholder = "";
+document.getElementById("width").readOnly = false;
+document.getElementById("length").readOnly = false;
+}
+}
+
+function calculateTime() {
+const W = parseFloat(document.getElementById("width").value);
+const L = parseFloat(document.getElementById("length").value);
+const He = parseFloat(document.getElementById("height").value || document.getElementById("height").placeholder);
+const pumpFlow = parseFloat(document.getElementById("pump").value);
+
+if (isNaN(W) || isNaN(L) || isNaN(He) || isNaN(pumpFlow) || pumpFlow <= 0) {
+alert("모든 값을 올바르게 입력하세요.");
+return;
+}
+
+const volume = W * L * He; // m³
+const minutes = volume / pumpFlow;
+const hours = Math.floor(minutes / 60);
+const mins = Math.round(minutes % 60);
+
+if (results.length >= 6) results.shift();
+results.push(`${hours} Hr ${mins} Min`);
+
+displayResults();
+}
+
+function displayResults() {
+let output = "";
+let totalMinutes = 0;
+results.forEach((time, i) => {
+output += `<div class="result-entry">${i + 1}. ${time}</div>`;
+const parts = time.match(/\d+/g);
+totalMinutes += parseInt(parts[0]) * 60 + parseInt(parts[1]);
+});
+
+if (results.length > 0) {
+const totalHours = Math.floor(totalMinutes / 60);
+const totalMins = totalMinutes % 60;
+output += `<div class="result-entry">합계: ${totalHours} Hr ${totalMins} Min</div>`;
+}
+
+document.getElementById("results").innerHTML = output;
+}
+
+function resetResults() {
+results = [];
+document.getElementById("results").innerHTML = "";
+}
+</script>
+
+</body>
+</html>
